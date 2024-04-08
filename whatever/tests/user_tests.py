@@ -1,7 +1,7 @@
 from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework import status
-from .models import UserProfile
+from whatever.models import UserProfile
 
 class UserRegistrationLoginTests(APITestCase):
     def test_user_registration(self):
@@ -20,7 +20,6 @@ class UserRegistrationLoginTests(APITestCase):
         url = reverse('user-login')
         data = {'email': 'a@a.a', 'password': 'testpassword'}
         response = self.client.post(url, data, format='json')
-        print(response.content)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue('token' in response.data)
         self.assertTrue('profile' in response.data)
