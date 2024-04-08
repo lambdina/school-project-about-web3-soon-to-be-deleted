@@ -12,12 +12,13 @@ class UserProfile(AbstractUser):
     email = models.EmailField(_("email address"), unique=True)
     password = models.CharField(_("password"), max_length=128, blank=True, null=True)
 
+
 class House(models.Model):
     city = models.CharField(max_length=100)
     rooms = models.IntegerField()
     year_of_construction = models.IntegerField()
     images = models.ImageField(upload_to='houses/', blank=True, null=True)
-    owner = models.ForeignKey(UserProfile, on_delete=models.CASCADE, blank=True, null=True)
+    owner = models.ForeignKey(UserProfile, on_delete=models.CASCADE, blank=True)
 
 
 class Sale(models.Model):

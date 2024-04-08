@@ -1,2 +1,2 @@
 from .user_tests import *
-from .house_test import *
+from .sales_test import *

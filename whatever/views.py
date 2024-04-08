@@ -26,7 +26,6 @@ class HouseListCreateView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         request.data['owner'] = ProfileSerializer(request.user).data
-        request.data['waiting_list'] = []
         return super().create(request, *args, **kwargs)
 
 
@@ -41,6 +40,11 @@ class SaleListCreateView(generics.ListCreateAPIView):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def create(self, request, *args, **kwargs):
+        request.data['seller'] = request.user.id
+        request.data['waiting_list'] = []
+        return super().create(request, *args, **kwargs)
 
 
 class SaleDetailView(generics.RetrieveUpdateDestroyAPIView):
