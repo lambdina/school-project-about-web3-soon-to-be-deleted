@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 
+from .services.xrpl import XRPLService, create_wallet
+
 
 class UserProfileListCreateView(generics.ListCreateAPIView):
     queryset = UserProfile.objects.all()
@@ -81,3 +83,15 @@ class UserRegisterView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     queryset = UserProfile.objects.all()
     serializer_class = ProfileSerializer
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        user = UserProfile.objects.get(pk=response.data['id'])
+        user.set_password(request.data['password'])
+        # TODO, hash private key and seed lol
+        pubkey, privkey, seed = create_wallet()
+        user.pubkey = pubkey
+        user.privkey = privkey
+        user.seed = seed
+        user.save()
+        return response

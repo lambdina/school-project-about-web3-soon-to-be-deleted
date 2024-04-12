@@ -11,6 +11,9 @@ class UserProfile(AbstractUser):
 
     email = models.EmailField(_("email address"), unique=True)
     password = models.CharField(_("password"), max_length=128, blank=True, null=True)
+    pubkey = models.CharField(_("wallet address"), max_length=128, blank=True, null=True)
+    privkey = models.CharField(_("private key"), max_length=128, blank=True, null=True)
+    seed = models.CharField(_("seed"), max_length=128, blank=True, null=True)
 
 
 class House(models.Model):
