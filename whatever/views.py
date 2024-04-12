@@ -1,3 +1,6 @@
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+
 from .models import UserProfile, House, Sale
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from .serializers import ProfileSerializer, HouseSerializer, SaleSerializer
@@ -58,8 +61,29 @@ class SaleDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class UserLoginView(generics.GenericAPIView):
     authentication_classes = []
-    permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_description="Login user",
+        responses={200: openapi.Response(
+            description="User logged in successfully",
+            examples={
+                    "token": "TokenKey",
+                    "profile": {
+                        "id": 1,
+                        "email": "blurp@blurp.com",
+                        "username": "blurp",
+                        "pubkey": "r123123123",
+                        "privkey": "s123123123",
+                        "seed": "sEd123123123"
+                    }
+            }
+        ), 401: openapi.Response(
+            description="Invalid credentials",
+            examples={
+                    "error": "Invalid credentials"
+            }
+        )}
+    )
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
@@ -73,6 +97,17 @@ class UserLoginView(generics.GenericAPIView):
 
 
 class UserLogoutView(generics.GenericAPIView):
+    authentication_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Logout user",
+        responses={200: openapi.Response(
+            description="User logged out successfully",
+            examples={
+                    "success": "Logged out successfully"
+            }
+        )}
+    )
     def post(self, request):
         logout(request)
         return Response({'success': 'Logged out successfully'}, status=status.HTTP_200_OK)
