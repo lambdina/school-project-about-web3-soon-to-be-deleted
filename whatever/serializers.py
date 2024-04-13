@@ -30,3 +30,12 @@ class SaleSerializer(serializers.ModelSerializer):
         house_data = validated_data.pop('house')
         validated_data['house'] = HouseSerializer().create(house_data)
         return Sale.objects.create(**validated_data)
+
+
+class BidSerializer(serializers.Serializer):
+    sale = serializers.IntegerField()
+
+    def validate_sale(self, value):
+        if Sale.objects.filter(pk=value).exists():
+            return value
+        raise serializers.ValidationError('Sale does not exist')

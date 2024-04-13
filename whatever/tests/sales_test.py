@@ -2,15 +2,20 @@ from django.urls import reverse
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 from rest_framework import status
-from django.contrib.auth.models import User
 from datetime import datetime, timedelta
 
 from whatever.models import UserProfile, Sale
+from whatever.services.xrpl import XRPLService
 
 
 class SaleCreationTests(APITestCase):
     def setUp(self):
         self.user = UserProfile.objects.create_user(username='testuser', password='testpassword', email='a@a.a')
+        # pubkey, privkey, seed = XRPLService().get_or_create_wallet()
+        self.user.pubkey = 'rwBQhveDUtf4WDNLjuwXTQ38mKpPqBV5aC'
+        # self.user.privkey = privkey
+        self.user.seed = 'sEdSAigmtYoUroaLgEb2ZGeFLm94u2T'
+        self.user.save()
         self.token = Token.objects.create(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
 
@@ -18,6 +23,7 @@ class SaleCreationTests(APITestCase):
         url = reverse('sale-list-create')
         data = {
             'is_sold': False,
+            'price': 156,
             'auction_end_time': (datetime.now() + timedelta(days=21)).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'house': {
                 'city': 'New York',

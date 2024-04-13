@@ -22,11 +22,14 @@ class House(models.Model):
     year_of_construction = models.IntegerField()
     images = models.ImageField(upload_to='houses/', blank=True, null=True)
     owner = models.ForeignKey(UserProfile, on_delete=models.CASCADE, blank=True)
+    ownership_transfer_tx_hash = models.CharField(max_length=128, blank=True, null=True)
 
 
 class Sale(models.Model):
+    price = models.IntegerField(default=0, blank=True)
     is_sold = models.BooleanField(default=False)
     auction_end_time = models.DateTimeField(default=timezone.now() + timedelta(days=21))
     house = models.ForeignKey(House, on_delete=models.CASCADE)
     seller = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="sale")
     waiting_list = models.ManyToManyField(UserProfile, related_name="waiting_list", blank=True)
+    creation_tx_hash = models.CharField(max_length=128, blank=True, null=True)

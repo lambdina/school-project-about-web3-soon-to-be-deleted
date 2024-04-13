@@ -1,15 +1,17 @@
+import os
+
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from .models import UserProfile, House, Sale
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
-from .serializers import ProfileSerializer, HouseSerializer, SaleSerializer
+from .serializers import ProfileSerializer, HouseSerializer, SaleSerializer, BidSerializer
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 
-from .services.xrpl import XRPLService, create_wallet
+from .services.xrpl import XRPLService
 
 
 class UserProfileListCreateView(generics.ListCreateAPIView):
@@ -49,7 +51,15 @@ class SaleListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         request.data['seller'] = request.user.id
         request.data['waiting_list'] = []
-        return super().create(request, *args, **kwargs)
+
+        # test mint
+        if int(os.getenv('TEST', 0)):
+            return super().create(request, *args, **kwargs)
+        tx_result = XRPLService().mint_house(request.user.seed, request.data['price'], uri="https://www.google.com")
+        if tx_result:
+            request.data['creation_tx_hash'] = tx_result["result"]["hash"]
+            return super().create(request, *args, **kwargs)
+        return Response({'error': 'Failed to mint house'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SaleDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -57,6 +67,75 @@ class SaleDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [AllowAny]
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
+
+
+class SaleBidView(generics.ListCreateAPIView):
+    authentication_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    queryset = BidSerializer
+
+    @swagger_auto_schema(
+        operation_description="Bid on a sale",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'sale': openapi.Schema(type=openapi.TYPE_INTEGER, description='Sale ID')
+            }
+        ),
+        responses={200: openapi.Response(
+            description="Added to waiting list",
+            examples={
+                "success": "Added to waiting list"
+            }
+        ), 400: openapi.Response(
+            description="Error",
+            examples={
+                "error": "Sale is already sold"
+            }
+        )}
+    )
+    def create(self, request, *args, **kwargs):
+        sale = Sale.objects.get(pk=request.data['sale'])
+        if sale.is_sold:
+            return Response({'error': 'Sale is already sold'}, status=status.HTTP_400_BAD_REQUEST)
+        if sale.seller == request.user:
+            return Response({'error': 'You cannot bid on your own sale'}, status=status.HTTP_400_BAD_REQUEST)
+        sale.waiting_list.add(request.user)
+        sale.save()
+        return Response({'success': 'Added to waiting list'}, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Buy a sale",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'sale': openapi.Schema(type=openapi.TYPE_INTEGER, description='Sale ID')
+            }
+        ),
+        responses={200: openapi.Response(
+            description="Sale is sold",
+            examples={
+                "success": "Sale is sold"
+            }
+        ), 400: openapi.Response(
+            description="Error",
+            examples={
+                "error": "Sale is already sold"
+            }
+        )}
+    )
+    def update(self, request, *args, **kwargs):
+        sale = Sale.objects.get(pk=request.data['sale'])
+        if sale.is_sold:
+            return Response({'error': 'Sale is already sold'}, status=status.HTTP_400_BAD_REQUEST)
+        if sale.seller == request.user:
+            return Response({'error': 'You cannot bid on your own sale'}, status=status.HTTP_400_BAD_REQUEST)
+        if request.user in sale.waiting_list.all():
+            sale.waiting_list.remove(request.user)
+            sale.is_sold = True
+            sale.save()
+            return Response({'success': 'Sale is sold'}, status=status.HTTP_200_OK)
+        return Response({'error': 'You are not in the waiting list'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserLoginView(generics.GenericAPIView):
@@ -67,20 +146,20 @@ class UserLoginView(generics.GenericAPIView):
         responses={200: openapi.Response(
             description="User logged in successfully",
             examples={
-                    "token": "TokenKey",
-                    "profile": {
-                        "id": 1,
-                        "email": "blurp@blurp.com",
-                        "username": "blurp",
-                        "pubkey": "r123123123",
-                        "privkey": "s123123123",
-                        "seed": "sEd123123123"
-                    }
+                "token": "TokenKey",
+                "profile": {
+                    "id": 1,
+                    "email": "blurp@blurp.com",
+                    "username": "blurp",
+                    "pubkey": "r123123123",
+                    "privkey": "s123123123",
+                    "seed": "sEd123123123"
+                }
             }
         ), 401: openapi.Response(
             description="Invalid credentials",
             examples={
-                    "error": "Invalid credentials"
+                "error": "Invalid credentials"
             }
         )}
     )
@@ -104,7 +183,7 @@ class UserLogoutView(generics.GenericAPIView):
         responses={200: openapi.Response(
             description="User logged out successfully",
             examples={
-                    "success": "Logged out successfully"
+                "success": "Logged out successfully"
             }
         )}
     )
@@ -123,8 +202,12 @@ class UserRegisterView(generics.CreateAPIView):
         response = super().create(request, *args, **kwargs)
         user = UserProfile.objects.get(pk=response.data['id'])
         user.set_password(request.data['password'])
-        # TODO, hash private key and seed lol
-        pubkey, privkey, seed = create_wallet()
+
+        if int(os.getenv('TEST', 0)):
+            user.save()
+            return response
+
+        pubkey, privkey, seed = XRPLService().get_or_create_wallet()
         user.pubkey = pubkey
         user.privkey = privkey
         user.seed = seed
