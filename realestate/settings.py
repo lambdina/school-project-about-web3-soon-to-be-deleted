@@ -29,6 +29,10 @@ ALLOWED_HOSTS = [
     '*'
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://web3-git-main-lybertyxzs-projects.vercel.app",
+]
 
 # Application definition
 
@@ -39,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'rest_framework_swagger',
     'rest_framework.authtoken',

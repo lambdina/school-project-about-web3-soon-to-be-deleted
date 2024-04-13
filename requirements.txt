@@ -2,3 +2,4 @@ djangorestframework
 Pillow
 xrpl-py==2.5.0
 drf-yasg
+django-cors-headers
