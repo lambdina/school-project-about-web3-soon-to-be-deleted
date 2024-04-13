@@ -29,10 +29,6 @@ ALLOWED_HOSTS = [
     '*'
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "https://web3-git-main-lybertyxzs-projects.vercel.app",
-]
 
 # Application definition
 
@@ -43,9 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders',
     'rest_framework',
-    'rest_framework_swagger',
+    'corsheaders',
     'rest_framework.authtoken',
     'whatever',
 ]
@@ -58,7 +53,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
 ]
+
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
+CORS_ORIGIN_ALLOW_ALL = True
 
 ROOT_URLCONF = 'realestate.urls'
 
