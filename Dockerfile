@@ -4,7 +4,7 @@ FROM python:3.11
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-
+ENV TEST=1
 # Set the working directory to /app
 WORKDIR /app
 
@@ -17,6 +17,10 @@ RUN apt-get update \
         libpq-dev  # Add any other system dependencies if needed
 
 RUN pip install -r requirements.txt
+
+RUN python3 manage.py migrate --run-syncdb
+
+RUN python3 manage.py runserver 8000
 
 # Make port 8080 available to the world outside this container
 EXPOSE 8080

@@ -206,7 +206,6 @@ class UserRegisterView(generics.CreateAPIView):
         if int(os.getenv('TEST', 0)):
             user.save()
             return response
-
         pubkey, privkey, seed = XRPLService().get_or_create_wallet()
         user.pubkey = pubkey
         user.privkey = privkey
