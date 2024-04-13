@@ -18,6 +18,8 @@ RUN apt-get update \
 
 RUN pip install -r requirements.txt
 
+RUN python3 manage.py migrate makemigrations --noinput
+
 RUN python3 manage.py migrate --run-syncdb
 
 RUN python3 manage.py runserver 8000
